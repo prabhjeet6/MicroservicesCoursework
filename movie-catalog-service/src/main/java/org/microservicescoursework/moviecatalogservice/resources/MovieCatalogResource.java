@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+
 import org.microservicescoursework.moviecatalogservice.models.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,6 +36,7 @@ public class MovieCatalogResource {
 	@Autowired
 	DiscoveryClient discoveryClient;
 
+	@HystrixCommand(fallbackMethod = "getFallbackCatalog")
 	@RequestMapping("/{userId}")
 	public List<CatalogItem> getCatalog(@PathVariable("userId") String userId) {
 
@@ -62,4 +66,10 @@ public class MovieCatalogResource {
 		}).collect(Collectors.toList());
 
 	}
+
+	public List<CatalogItem> getFallbackCatalog(@PathVariable("userId") String userId) {
+	
+		return Arrays.asList(new CatalogItem("No Movie", userId, 0));
+	}
+	
 }
