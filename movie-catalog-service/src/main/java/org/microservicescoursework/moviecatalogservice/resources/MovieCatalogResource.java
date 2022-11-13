@@ -11,6 +11,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 
 import org.microservicescoursework.moviecatalogservice.models.*;
+import org.microservicescoursework.moviecatalogservice.services.MovieInfo;
+import org.microservicescoursework.moviecatalogservice.services.UserRatingInfo;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,40 +39,48 @@ public class MovieCatalogResource {
 	@Autowired
 	DiscoveryClient discoveryClient;
 
-	@HystrixCommand(fallbackMethod = "getFallbackCatalog")
+	@Autowired
+	UserRatingInfo userRatingInfo;
+
+	@Autowired
+	MovieInfo movieInfo;
+
 	@RequestMapping("/{userId}")
+	// @HystrixCommand(fallbackMethod = "getFallbackCatalog")
 	public List<CatalogItem> getCatalog(@PathVariable("userId") String userId) {
 
 		// get all rated movie ids
-		UserRating ratings = restTemplate.getForObject("http://ratings-data-service/ratingsdata/users/" + userId,
-				UserRating.class);
+		UserRating ratings = userRatingInfo.getUserRating(userId);
+		return ratings.getUserRating().stream().map(rating ->
 
-		return ratings.getUserRating().stream().map(rating -> {
+		/*
+		 * For each movieId, call movie-info service and get details Using RestTemplate
+		 * Movie movie = restTemplate.getForObject("http://movie-info-service/movies/" +
+		 * rating.getMovieId(), Movie.class);
+		 */
+		/*
+		 * Using WebClient:Seprate Webflux maven dependency added to incorporate
+		 * WebClient.Builder class in the classpath
+		 *
+		 * Movie movie = webClientBuilder.build() .get()
+		 * .uri("http://localhost:8082/movies/" + rating.getMovieId()) .retrieve()
+		 * .bodyToMono(Movie.class) .block(); //here, .block() ensures that operation is
+		 * blocked until a result is returned
+		 */
 
-			// For each movieId, call movie-info service and get details
-			// Using RestTemplate
-			Movie movie = restTemplate.getForObject("http://movie-info-service/movies/" + rating.getMovieId(),
-					Movie.class);
+		// Put them all together
+		// return new CatalogItem(movie.getName(), "Christopher Nolan's masterpiece",
+		// rating.getRating());
 
-			/*
-			 * Using WebClient:Seprate Webflux maven dependency added to incorporate
-			 * WebClient.Builder class in the classpath
-			 *
-			 * Movie movie = webClientBuilder.build() .get()
-			 * .uri("http://localhost:8082/movies/" + rating.getMovieId()) .retrieve()
-			 * .bodyToMono(Movie.class) .block(); //here, .block() ensures that operation is
-			 * blocked until a result is returned
-			 */
-
-			// Put them all together
-			return new CatalogItem(movie.getName(), "Christopher Nolan's masterpiece", rating.getRating());
-		}).collect(Collectors.toList());
+		movieInfo.getCatalogItem(rating)).collect(Collectors.toList());
 
 	}
 
-	public List<CatalogItem> getFallbackCatalog(@PathVariable("userId") String userId) {
-	
-		return Arrays.asList(new CatalogItem("No Movie", userId, 0));
-	}
-	
+	/*
+	 * public List<CatalogItem> getFallbackCatalog(@PathVariable("userId") String
+	 * userId) {
+	 * 
+	 * return Arrays.asList(new CatalogItem("No Movie", userId, 0)); }
+	 */
+
 }
