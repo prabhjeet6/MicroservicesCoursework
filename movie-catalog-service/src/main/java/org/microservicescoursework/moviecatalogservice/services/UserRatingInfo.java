@@ -33,10 +33,23 @@ public class UserRatingInfo {
 	@Autowired
 	RestTemplate restTemplate;
 
-	@HystrixCommand(fallbackMethod = "getFallbackUserRating", commandProperties = {
-			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "5"),
-			@HystrixProperty(name = "circuitBreaker.errorThresholdPercentage", value = "50"),
-			@HystrixProperty(name = "circuitBreaker.sleepWindowInMilliseconds", value = "5000") })
+	@HystrixCommand(fallbackMethod = "getFallbackUserRating",
+			/**
+			 * Configuring Hystrix Properties to implement Bulk Head Pattern. According to
+			 * Bulk Head Pattern, We create separate thread pools for each micro-service
+			 * restTemplate calls, so, that the slow microservice does not consume all
+			 * threads rendering normal service to eventually become slow due to thread pool
+			 * getting consumed due to slow service.Instead it has its separate thread pool.
+			 **/
+			threadPoolKey = "UserRatingPool", threadPoolProperties = {
+					// number of concurrent threads microservice call allows
+					@HystrixProperty(name = "coreSize", value = "20"),
+					// number of requests Queued in buffer
+					@HystrixProperty(name = "maxQueueSize", value = "10")
+
+			}, commandProperties = { @HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "5"),
+					@HystrixProperty(name = "circuitBreaker.errorThresholdPercentage", value = "50"),
+					@HystrixProperty(name = "circuitBreaker.sleepWindowInMilliseconds", value = "5000") })
 	public UserRating getUserRating(String userId) {
 		return restTemplate.getForObject("http://ratings-data-service/ratingsdata/users/" + userId, UserRating.class);
 	}
