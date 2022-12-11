@@ -1,22 +1,31 @@
 package org.microservicescoursework.moviecatalogservice.resources;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.microservicescoursework.moviecatalogservice.models.CatalogItem;
+import org.microservicescoursework.moviecatalogservice.models.UserRating;
+import org.microservicescoursework.moviecatalogservice.services.MovieInfo;
+import org.microservicescoursework.moviecatalogservice.services.UserRatingInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
-
-import org.microservicescoursework.moviecatalogservice.models.*;
-import org.microservicescoursework.moviecatalogservice.services.MovieInfo;
-import org.microservicescoursework.moviecatalogservice.services.UserRatingInfo;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
+/**
+ * @RefreshScope marks properties marked with @Value to be refreshed in the
+ *               configuration client class to be refreshed with updated
+ *               configuration server properties on need basis.Whenever updated
+ *               properties are needed by the client microservice from the
+ *               configuration server, we use actuator end point e.g.
+ *               http://host:port/actuator/refresh for client microservice
+ **/
+@RefreshScope
 @RestController
 @RequestMapping("/catalog")
 public class MovieCatalogResource {
@@ -44,6 +53,11 @@ public class MovieCatalogResource {
 
 	@Autowired
 	MovieInfo movieInfo;
+	
+	@Value("${demo}")
+	String demoVariable;
+	@Value("${demo1}")
+	String demoVariable1;
 
 	@RequestMapping("/{userId}")
 	// @HystrixCommand(fallbackMethod = "getFallbackCatalog")
@@ -82,5 +96,11 @@ public class MovieCatalogResource {
 	 * 
 	 * return Arrays.asList(new CatalogItem("No Movie", userId, 0)); }
 	 */
+	
+	@RequestMapping("/getConfigProperties")
+	public void getConfigProperties() {
+		System.out.println(demoVariable+" and "+demoVariable1);
+	}
+	
 
 }
